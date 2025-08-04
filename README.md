@@ -4,7 +4,11 @@
 
 [ダウンロードはこちら．](https://github.com/sigma-axis/aviutl2_script_ColoredCollar_S/releases)
 
-![使用例](TODO: )
+![使用例1](https://github.com/user-attachments/assets/9446ebe9-6818-4cb9-bc45-b60dfd41cbdf)
+
+![使用例2](https://github.com/user-attachments/assets/1c9eb507-17c7-42af-88b3-3207e1412599)
+
+- イラスト: 琴葉茜 琴葉葵 (c) AI Inc.
 
 ##  動作要件
 
@@ -32,7 +36,7 @@
 
 ##  パラメタの説明
 
-![スクリプトの GUI](TODO: )
+![スクリプトの GUI](https://github.com/user-attachments/assets/57e09043-7c6d-477c-baeb-77820383c631)
 
 ### `サイズ`
 
@@ -91,7 +95,7 @@
 
 ## 改版履歴
 
-- **v1.00 (for beta5)** (2025-08-??)
+- **v1.00 (for beta5)** (2025-08-04)
 
   - 初版．
 
