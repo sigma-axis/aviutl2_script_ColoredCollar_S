@@ -2,7 +2,7 @@
 
 オブジェクトの境界部分の色を引き延ばして縁取りする AviUtl ExEdit 2 用のスクリプトです．縁取り部分は半透明にしたり，指定色で薄っすら色を付けることもでき，標準の「縁取り」の拡張版として利用することもできます．
 
-[ダウンロードはこちら．](https://github.com/sigma-axis/aviutl2_script_ColoredCollar_S/releases)
+[ダウンロードはこちら．](https://github.com/sigma-axis/aviutl2_script_ColoredCollar_S/releases) [紹介動画．](https://www.nicovideo.jp/watch/sm45257124)
 
 ![使用例1](https://github.com/user-attachments/assets/9446ebe9-6818-4cb9-bc45-b60dfd41cbdf)
 
