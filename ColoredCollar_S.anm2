@@ -1,0 +1,154 @@
+--[[
+MIT License
+Copyright (c) 2025 sigma-axis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+https://mit-license.org/
+]]
+--information:ColoredCollar_S v1.00 (for beta5) by σ軸
+--label:装飾
+--track@thick:サイズ,0,500,5,1
+--track@blur:ぼかし,0,100,0,1
+--track@alpha:透明度,0,100,0,0.01
+--color@color:縁色,0xffffff
+--track@col_alpha:色の濃さ,0,100,30,0.01
+--track@front_alpha:前景透明度,0,100,0,0.01
+--value@PI:PI,{}
+--[[pixelshader@inflate:
+Texture2D src_infl : register(t0);
+Texture2D src_orig : register(t1);
+
+float4 pick_color(Texture2D tex, int2 pos)
+{
+	return tex.Load(int3(pos, 0));
+}
+float4 inflate(float4 pos : SV_Position) : SV_Target
+{
+	const int2 idx = int2(pos.xy);
+	float4 ifl = pick_color(src_infl, idx);
+	float4 ori = pick_color(src_orig, idx);
+
+	ifl *= ifl.a < 1.0 / 512 ? 0 : (1 - ori.a) / max(ifl.a, 0.25);
+	return ifl + ori;
+}
+]]
+--[[pixelshader@carve:
+Texture2D src_shape : register(t0);
+Texture2D src_color : register(t1);
+Texture2D src_orig : register(t2);
+cbuffer constant0 : register(b0) {
+	float offset, alpha, c_alpha, f_alpha;
+};
+
+float4 pick_color(Texture2D tex, int2 pos)
+{
+	return tex.Load(int3(pos, 0));
+}
+float4 carve(float4 pos : SV_Position) : SV_Target
+{
+	const int2 idx = int2(pos.xy);
+	float4 shp = pick_color(src_shape, idx);
+	float4 col = pick_color(src_color, idx);
+	float4 ori = pick_color(src_orig, idx - int(offset));
+
+	shp -= ori; col -= ori;
+	col *= col.a <= shp.a ? 1 : shp.a / col.a;
+	return alpha * lerp(col, shp, c_alpha) + f_alpha * ori;
+}
+]]
+local obj, tonumber, math = obj, tonumber, math;
+
+-- take parameters.
+--[==[
+	PI = {
+		thick: number?,
+		blur: number?,
+		alpha: number?,
+		color: number?,
+		col_alpha: number?,
+		front_alpha: number?,
+	}
+--]==]
+thick = tonumber(PI.thick) or thick;
+blur = tonumber(PI.blur) or blur;
+alpha = tonumber(PI.alpha) or alpha;
+color = tonumber(PI.color) or color;
+col_alpha = tonumber(PI.col_alpha) or col_alpha;
+front_alpha = tonumber(PI.front_alpha) or front_alpha;
+
+-- normalize paramters.
+thick = math.min(math.max(math.floor(thick), 0), 500);
+blur = math.min(math.max(math.floor(blur), 0), 100);
+alpha = math.min(math.max(1 - alpha / 100, 0), 1);
+color = math.floor(color) % 2 ^ 24;
+col_alpha = math.min(math.max(col_alpha / 100, 0), 1);
+front_alpha = math.min(math.max(1 - front_alpha / 100, 0), 1);
+
+local function effect_border()
+	obj.effect("縁取り", "サイズ", thick, "ぼかし", blur, "縁色", ("%06x"):format(color));
+end
+local function extend_canvas()
+	obj.effect("領域拡張", "上", thick, "下", thick, "左", thick, "右", thick);
+end
+
+-- early returns.
+if thick <= 0 or alpha <= 0 then
+	if front_alpha < 1 then
+		if front_alpha > 0 then
+			obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h);
+			obj.draw(0, 0, 0, 1, front_alpha);
+			obj.copybuffer("object", "tempbuffer");
+		else obj.clearbuffer("object") end
+	end
+	if thick > 0 then extend_canvas() end
+	return;
+elseif col_alpha >= 1 then
+	if alpha < 1 or front_alpha < 1 then
+		obj.copybuffer("tempbuffer", "object");
+		effect_border();
+		obj.pixelshader("carve", "object", { "object", "object", "tempbuffer" },
+		{
+			thick, alpha, 1, front_alpha,
+		});
+	else effect_border() end
+	return;
+end
+
+-- extend the outer collar.
+local cache_name_orig = "cache:ExtendBorder_S/orig";
+obj.copybuffer(cache_name_orig, "object");
+extend_canvas();
+local accum = 0 while accum < thick do
+	local d = math.min(thick - accum, 1 + math.floor(accum / 2));
+	accum = accum + d;
+
+	obj.copybuffer("tempbuffer", "object");
+	obj.effect("ぼかし", "範囲", 2 * d, "サイズ固定", 1);
+	obj.pixelshader("inflate", "object", { "object", "tempbuffer" });
+end
+
+-- and carve the extent to the outlined shape.
+obj.copybuffer("tempbuffer", "object");
+obj.copybuffer("object", cache_name_orig);
+effect_border();
+obj.pixelshader("carve", "object", { "object", "tempbuffer", cache_name_orig },
+{
+	thick, alpha, col_alpha, front_alpha,
+});
