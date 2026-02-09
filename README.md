@@ -89,12 +89,12 @@ Although, usage documentations for this script in languages other than Japanese 
 
 ```lua
 {
-  thick = thick, -- number 型で "サイズ" の項目を上書き，または nil.
-  blur = blur, -- number 型で "ぼかし" の項目を上書き，または nil.
-  alpha = alpha, -- number 型で "透明度" の項目を上書き，または nil.
-  color = color, -- number 型で "縁色" の項目を上書き，または nil.
-  col_alpha = col_alpha, -- number 型で "色の濃さ" の項目を上書き，または nil.
-  front_alpha = front_alpha, -- number 型で "前景透明度" の項目を上書き，または nil.
+  thick = num,       -- number 型で "サイズ" の項目を上書き，または nil.
+  blur = num,        -- number 型で "ぼかし" の項目を上書き，または nil.
+  alpha = num,       -- number 型で "透明度" の項目を上書き，または nil.
+  color = num,       -- number 型で "縁色" の項目を上書き，または nil.
+  col_alpha = num,   -- number 型で "色の濃さ" の項目を上書き，または nil.
+  front_alpha = num, -- number 型で "前景透明度" の項目を上書き，または nil.
 }
 ```
 - テキストボックスには冒頭末尾の波括弧 (`{}`) を省略して記述してください．
