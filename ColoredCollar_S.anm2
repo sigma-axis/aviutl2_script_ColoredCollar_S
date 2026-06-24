@@ -22,133 +22,281 @@ SOFTWARE.
 
 https://mit-license.org/
 ]]
---information:ColoredCollar_S v1.00 (for beta5) by σ軸
+--information:ColoredCollar_S v2.00-dev (for beta51) by σ軸
 --label:装飾
---track@thick:サイズ,0,500,5,1
---track@blur:ぼかし,0,100,0,1
---track@alpha:透明度,0,100,0,0.01
+--filter
+--require:2005000
+--track@thick:サイズ,0,500,5,0.01,,0.4
+--track@blur:ぼかし,0,100,5,0.01
+--track@col_blur:色拡散,0,200,50,0.01,,0.5
+--track@threshold:αしきい値,0,100,50,0.01
+--checksection@fixed_size:サイズ固定,false,false
+--group:色設定,false
 --color@color:縁色,0xffffff
 --track@col_alpha:色の濃さ,0,100,30,0.01
+--color@color_outer:縁色外側,nil
+--track@col_alpha_outer:outer::色の濃さ,0,100,30,0.01
+--group:透明度設定,false
+--track@alpha:透明度,0,100,0,0.01
 --track@front_alpha:前景透明度,0,100,0,0.01
+--group:その他,false
 --value@PI:PI,{}
---[[pixelshader@inflate:
-Texture2D src_infl : register(t0);
-Texture2D src_orig : register(t1);
-
-float4 pick_color(Texture2D tex, int2 pos)
+--[[pixelshader@const_value:
+cbuffer constant0 : register(b0) {
+	float4 color;
+};
+float4 const_value(float4 pos : SV_Position) : SV_Target
 {
-	return tex.Load(int3(pos, 0));
-}
-float4 inflate(float4 pos : SV_Position) : SV_Target
-{
-	const int2 idx = int2(pos.xy);
-	float4 ifl = pick_color(src_infl, idx);
-	float4 ori = pick_color(src_orig, idx);
-
-	ifl *= ifl.a < 1.0 / 512 ? 0 : (1 - ori.a) / max(ifl.a, 0.25);
-	return ifl + ori;
+	return color;
 }
 ]]
---[[pixelshader@carve:
-Texture2D src_shape : register(t0);
-Texture2D src_color : register(t1);
-Texture2D src_orig : register(t2);
+--[[pixelshader@dist_init:
+Texture2D src : register(t0);
 cbuffer constant0 : register(b0) {
-	float offset, alpha, c_alpha, f_alpha;
+	float2 offset;
+	float thresh;
 };
 
-float4 pick_color(Texture2D tex, int2 pos)
-{
-	return tex.Load(int3(pos, 0));
-}
-float4 carve(float4 pos : SV_Position) : SV_Target
-{
-	const int2 idx = int2(pos.xy);
-	float4 shp = pick_color(src_shape, idx);
-	float4 col = pick_color(src_color, idx);
-	float4 ori = pick_color(src_orig, idx - int(offset));
+half2 enc(uint p) { return half2(p >> 8, p & 0xff); }
+half4 enc(uint2 p) { return half4(enc(p.x), enc(p.y)); }
+uint dec(half2 u) { return uint(dot(float2(256, 1), u)); }
+uint2 dec(half4 u) { return uint2(dec(u.xy), dec(u.zw)); }
+bool valid(uint2 p) { return all(p < (1 << 14)); }
+static const uint2 p_none = (1 << 15) - 1;
 
-	shp -= ori; col -= ori;
-	col *= col.a <= shp.a ? 1 : shp.a / col.a;
-	return alpha * lerp(col, shp, c_alpha) + f_alpha * ori;
+float4 dist_init(float4 pos : SV_Position) : SV_Target
+{
+	return src.Load(int3(floor(pos.xy - offset), 0)).a < thresh ?
+		enc(p_none) : enc(uint2(pos.xy));
 }
 ]]
-local obj, tonumber, math = obj, tonumber, math;
+--[[pixelshader@dist_step:
+Texture2D prev : register(t0);
+cbuffer constant0 : register(b0) {
+	float2 size_f;
+	float step_len_f;
+};
+static const uint2 size = uint2(size_f);
+static const int step_len = int(step_len_f);
+
+half2 enc(uint p) { return half2(p >> 8, p & 0xff); }
+half4 enc(uint2 p) { return half4(enc(p.x), enc(p.y)); }
+uint dec(half2 u) { return uint(dot(float2(256, 1), u)); }
+uint2 dec(half4 u) { return uint2(dec(u.xy), dec(u.zw)); }
+bool valid(uint2 p) { return all(p < (1 << 14)); }
+static const uint2 p_none = (1 << 15) - 1;
+
+float4 dist_step(float4 pos : SV_Position) : SV_Target
+{
+	const uint2 p0 = int2(pos.xy);
+
+	uint2 p_min = p_none;
+	int len_sq_min = dot(p_none, p_none);
+	[unroll] for (int j = -1; j <= 1; j++) {
+		[unroll] for (int i = -1; i <= 1; i++) {
+			const uint2 p1 = p0 + int2(i, j) * step_len;
+			if (any(p1 >= size)) continue;
+
+			const uint2 p = dec(prev[p1]);
+			if (!valid(p)) continue;
+
+			const int2 dp = p - p0;
+			const int len_sq = dot(dp, dp);
+			if (len_sq >= len_sq_min) continue;
+
+			p_min = p;
+			len_sq_min = len_sq;
+		}
+	}
+
+	return enc(p_min);
+}
+]]
+--[[pixelshader@dist_fin:
+Texture2D prev : register(t0);
+Texture2D src : register(t1);
+cbuffer constant0 : register(b0) {
+	float2 size_f, offset_f;
+};
+static const uint2 size = uint2(size_f),
+	offset = uint2(offset_f);
+
+half2 enc(uint p) { return half2(p >> 8, p & 0xff); }
+half4 enc(uint2 p) { return half4(enc(p.x), enc(p.y)); }
+uint dec(half2 u) { return uint(dot(float2(256, 1), u)); }
+uint2 dec(half4 u) { return uint2(dec(u.xy), dec(u.zw)); }
+bool valid(uint2 p) { return all(p < (1 << 14)); }
+static const uint2 p_none = (1 << 15) - 1;
+
+float4 dist_fin(float4 pos : SV_Position) : SV_Target
+{
+	const uint2 p0 = int2(pos.xy);
+
+	uint2 p_min = p_none;
+	int len_sq_min = dot(p_none, p_none);
+	[unroll] for (int yi = -1; yi <= 1; yi++) {
+		[unroll] for (int xi = -1; xi <= 1; xi++) {
+			const uint2 p1 = p0 + int2(xi, yi);
+			if (any(p1 >= size)) continue;
+
+			const uint2 p = dec(prev[p1]);
+			if (!valid(p)) continue;
+
+			const int2 dp = p - p0;
+			const int len_sq = dot(dp, dp);
+			if (len_sq >= len_sq_min) continue;
+
+			p_min = p;
+			len_sq_min = len_sq;
+		}
+	}
+
+	p_min -= offset;
+	float4 col = 0;
+	[unroll] for (yi = -1; yi <= 1; yi++) {
+		[unroll] for (int xi = -1; xi <= 1; xi++) {
+			const float wt = (2 - abs(xi)) * (2 - abs(yi)) / 16.0;
+			col += wt * src.Load(int3(p_min + uint2(xi, yi), 0));
+		}
+	}
+	return float4(col.rgb / col.a, sqrt(len_sq_min));
+}
+]]
+--[[pixelshader@put_col:
+Texture2D src : register(t0);
+Texture2D map : register(t1);
+cbuffer constant0 : register(b0) {
+	float4 color[2];
+	float2 size_f, offset, blur;
+	float alpha_back, alpha_fore, col_blur;
+};
+static const uint2 size = uint2(size_f);
+
+float4 put_col(float4 pos : SV_Position) : SV_Target
+{
+	const int2 pt0 = int2(pos.xy);
+	const float4 c_fore = src.Load(int3(pt0 - offset, 0));
+	const float d_len = map[pos.xy].a;
+	const float a = saturate((blur.x - d_len) * blur.y);
+	const float4 c_fill = lerp(color[0], color[1], saturate(d_len / blur.x));
+
+	const float range_pos = max(a > 0 && c_fill.a < 1 ? col_blur * sqrt(d_len) + 2 : 0, 0.5),
+		wt_rate = -3 / (range_pos * range_pos);
+	const int range_pos_i = ceil(range_pos - 1);
+	float4 c_back = 0;
+	for (int yi = -range_pos_i; yi <= range_pos_i; yi++) {
+		for (int xi = -range_pos_i; xi <= range_pos_i; xi++) {
+			const uint2 pt = pt0 + uint2(xi, yi);
+			if (any(pt >= size)) continue;
+
+			const float wt = exp(wt_rate * (xi * xi + yi * yi));
+			c_back += wt * float4(map[pt].rgb, 1);
+		}
+	}
+	c_back.rgb /= c_back.a;
+	c_back.rgb = lerp(c_back.rgb, c_fill.rgb, c_fill.a);
+	c_back.a = max(a - c_fore.a, 0); c_back.rgb *= c_back.a;
+
+	return alpha_fore * c_fore + alpha_back * c_back;
+}
+]]
+local obj, math, tonumber, bit_band = obj, math, tonumber, bit.band;
 
 -- take parameters.
 --[==[
 	PI = {
-		thick: number?,
-		blur: number?,
-		alpha: number?,
-		color: number?,
-		col_alpha: number?,
-		front_alpha: number?,
+		thick:				number?,
+		blur:				number?,
+		col_blur:			number?,
+		threshold:			number?,
+		fixed_size:			boolean|number|nil,
+		color:				number?,
+		col_alpha:			number?,
+		color_outer:		number|false|nil,
+		col_alpha_outer:	number?,
+		alpha:				number?,
+		front_alpha:		number?,
 	}
---]==]
+]==]
+local function as_bool(pi_value, gui_value)
+	if type(pi_value) == "boolean" then return pi_value;
+	elseif type(pi_value) == "number" then return pi_value ~= 0;
+	else return gui_value end
+end
 thick = tonumber(PI.thick) or thick;
 blur = tonumber(PI.blur) or blur;
-alpha = tonumber(PI.alpha) or alpha;
+col_blur = tonumber(PI.col_blur) or col_blur;
+threshold = tonumber(PI.threshold) or threshold;
+fixed_size = as_bool(PI.fixed_size, fixed_size);
 color = tonumber(PI.color) or color;
 col_alpha = tonumber(PI.col_alpha) or col_alpha;
+if PI.color_outer == false then color_outer = nil;
+else color_outer = tonumber(PI.color_outer) or color_outer end
+col_alpha_outer = tonumber(PI.col_alpha_outer) or col_alpha_outer;
+alpha = tonumber(PI.alpha) or alpha;
 front_alpha = tonumber(PI.front_alpha) or front_alpha;
 
 -- normalize paramters.
-thick = math.min(math.max(math.floor(thick), 0), 500);
-blur = math.min(math.max(math.floor(blur), 0), 100);
-alpha = math.min(math.max(1 - alpha / 100, 0), 1);
+thick = math.min(math.max(thick, 0), 500);
+blur = math.min(math.max(blur / 100, 0), 1);
+col_blur = math.min(math.max(col_blur / 100, 0), 1);
+threshold = math.min(math.max(threshold / 100, 2 ^ -24), 1 - 2 ^ -13);
 color = math.floor(color) % 2 ^ 24;
 col_alpha = math.min(math.max(col_alpha / 100, 0), 1);
+if color_outer then
+	color_outer = math.floor(color_outer) % 2 ^ 24;
+	col_alpha_outer = math.min(math.max(col_alpha_outer / 100, 0), 1);
+else color_outer, col_alpha_outer = color, col_alpha end
+alpha = math.min(math.max(1 - alpha / 100, 0), 1);
 front_alpha = math.min(math.max(1 - front_alpha / 100, 0), 1);
+fixed_size = fixed_size or obj.getinfo("filter");
 
-local function effect_border()
-	obj.effect("縁取り", "サイズ", thick, "ぼかし", blur, "縁色", ("%06x"):format(color));
-end
-local function extend_canvas()
-	obj.effect("領域拡張", "上", thick, "下", thick, "左", thick, "右", thick);
-end
+-- further calculations.
+local thick_i = fixed_size and 0 or math.ceil(thick);
+local col1_r, col1_g, col1_b =
+	bit_band(color, 0xff0000) / 0xff0000,
+	bit_band(color, 0x00ff00) / 0x00ff00,
+	bit_band(color, 0x0000ff) / 0x0000ff;
+col1_r, col1_g, col1_b = col_alpha * col1_r, col_alpha * col1_g, col_alpha * col1_b;
+local col2_r, col2_g, col2_b =
+	bit_band(color_outer, 0xff0000) / 0xff0000,
+	bit_band(color_outer, 0x00ff00) / 0x00ff00,
+	bit_band(color_outer, 0x0000ff) / 0x0000ff;
+col2_r, col2_g, col2_b = col_alpha_outer * col2_r, col_alpha_outer * col2_g, col_alpha_outer * col2_b;
 
--- early returns.
+-- early return.
 if thick <= 0 or alpha <= 0 then
 	if front_alpha < 1 then
 		if front_alpha > 0 then
-			obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h);
-			obj.draw(0, 0, 0, 1, front_alpha);
-			obj.copybuffer("object", "tempbuffer");
+			obj.pixelshader("const_value", "object", nil, {
+				0, 0, 0, front_alpha
+			}, "mask");
 		else obj.clearbuffer("object") end
 	end
-	if thick > 0 then extend_canvas() end
-	return;
-elseif col_alpha >= 1 then
-	if alpha < 1 or front_alpha < 1 then
-		obj.copybuffer("tempbuffer", "object");
-		effect_border();
-		obj.pixelshader("carve", "object", { "object", "object", "tempbuffer" },
-		{
-			thick, alpha, 1, front_alpha,
-		});
-	else effect_border() end
+	if thick > 0 then
+		obj.effect("領域拡張", "上", thick_i, "下", thick_i, "左", thick_i, "右", thick_i);
+	end
 	return;
 end
 
--- extend the outer collar.
-local cache_name_orig = "cache:ExtendBorder_S/orig";
-obj.copybuffer(cache_name_orig, "object");
-extend_canvas();
-local accum = 0 while accum < thick do
-	local d = math.min(thick - accum, 1 + math.floor(accum / 2));
-	accum = accum + d;
-
-	obj.copybuffer("tempbuffer", "object");
-	obj.effect("ぼかし", "範囲", 2 * d, "サイズ固定", 1);
-	obj.pixelshader("inflate", "object", { "object", "tempbuffer" });
+-- create reposition map.
+local w, h = obj.w, obj.h;
+local W, H = w + 2 * thick_i, h + 2 * thick_i;
+local cache_tmp, cache_map = "cache:ColoredCollar_S/tmp1", "cache:ColoredCollar_S/tmp2";
+obj.clearbuffer(cache_tmp, W, H); obj.clearbuffer(cache_map, W, H);
+obj.pixelshader("dist_init", cache_map, "object", { thick_i, thick_i, threshold });
+for i = math.ceil(math.max(math.log(math.max(W, H) / 2, 2), -1)), 0, -1 do
+	obj.pixelshader("dist_step", cache_tmp, cache_map, { W, H; 2 ^ i; });
+	cache_tmp, cache_map = cache_map, cache_tmp;
 end
+obj.pixelshader("dist_fin", cache_tmp, { cache_map, "object" }, { W, H; thick_i, thick_i; });
+cache_tmp, cache_map = cache_map, cache_tmp;
 
--- and carve the extent to the outlined shape.
-obj.copybuffer("tempbuffer", "object");
-obj.copybuffer("object", cache_name_orig);
-effect_border();
-obj.pixelshader("carve", "object", { "object", "tempbuffer", cache_name_orig },
-{
-	thick, alpha, col_alpha, front_alpha,
+-- put color to the destination.
+obj.pixelshader("put_col", cache_tmp, { "object", cache_map }, {
+	col1_r, col1_g, col1_b, col_alpha;
+	col2_r, col2_g, col2_b, col_alpha_outer;
+	W, H; thick_i, thick_i; thick, 1 / math.max(thick * blur, blur > 0 and 1 or 2 ^ -8);
+	alpha, front_alpha; col_blur;
 });
+obj.copybuffer("object", cache_tmp);
