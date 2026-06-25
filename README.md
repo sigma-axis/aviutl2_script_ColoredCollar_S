@@ -140,8 +140,11 @@ TODO: example image.
 ```
 - テキストボックスには冒頭末尾の波括弧 (`{}`) を省略して記述してください．
 
+##  TIPS
 
-## 次の改版予定
+1.  [「ぼかし」](#ぼかし)は 0 だと境界がジャギーになりますが，0.01 など 0 より大きければ，最低限の 1 ピクセル幅のアンチエイリアスがかかります．
+
+##  次の改版予定
 
 - **v2.00 (for beta51)** (2026-??-??)
 
@@ -169,14 +172,14 @@ TODO: example image.
 
   - `beta51` での動作確認．
 
-## 改版履歴
+##  改版履歴
 
 - **v1.00 (for beta5)** (2025-08-04)
 
   - 初版．
 
 
-## ライセンス
+##  ライセンス
 
 このプログラムの利用・改変・再頒布等に関しては MIT ライセンスに従うものとします．
 
@@ -195,7 +198,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 https://mit-license.org/
 
 
-#  連絡・バグ報告
+# 連絡・バグ報告
 
 - GitHub: https://github.com/sigma-axis
 - Twitter: https://x.com/sigma_axis

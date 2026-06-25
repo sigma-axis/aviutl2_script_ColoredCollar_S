@@ -2,7 +2,7 @@ name: Make Release
 on:
   push:
     tags:
-    - '*'
+      - '*'
 
 env:
   REPOSITORY_NAME: ColoredCollar_S
@@ -58,7 +58,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: recursive
+          sparse-checkout: |
+            README.md
+          sparse-checkout-cone-mode: false
 
       - name: Download the package as an artifact
         uses: actions/download-artifact@v8
