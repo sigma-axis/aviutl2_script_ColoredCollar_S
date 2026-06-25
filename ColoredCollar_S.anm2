@@ -40,6 +40,7 @@ https://mit-license.org/
 --track@alpha:透明度,0,100,0,0.01
 --track@front_alpha:前景透明度,0,100,0,0.01
 --group:その他,false
+--track@mollify:錯視補正,0,100,0,0.01
 --value@PI:PI,{}
 --[[pixelshader@const_value:
 cbuffer constant0 : register(b0) {
@@ -159,7 +160,36 @@ float4 dist_fin(float4 pos : SV_Position) : SV_Target
 			col += wt * src.Load(int3(p_min + uint2(xi, yi), 0));
 		}
 	}
-	return float4(col.rgb / col.a, sqrt(len_sq_min));
+	return float4(col.a > 0 ? col.rgb / col.a : 0, sqrt(len_sq_min));
+}
+]]
+--[[computeshader@convol:
+Texture2D src : register(t0);
+RWTexture2D<half4> dst : register(u0);
+cbuffer constant0 : register(b0) {
+	float2 dst_size_f;
+	float span_i_f, span_f, inv_span;
+};
+static const uint2 dst_size = uint2(dst_size_f);
+static const uint span_i = uint(span_i_f);
+int quantize(float v)
+{
+	return int(round((1 << 7) * v));
+}
+[numthreads(1, 64, 1)]
+void convol(uint2 id : SV_DispatchThreadID)
+{
+	if (id.y >= dst_size.x) return;
+	uint dst_x = dst_size.x - 1 - id.y;
+
+	int sum = 0;
+	for (uint x = 0; x < dst_size.y; x++) {
+		const float4 c = src.Load(int3(x, id.y, 0));
+		const float a0 = src.Load(int3(x - span_i, id.y, 0)).a;
+		dst[uint2(dst_x, x)] = float4(c.rgb,
+			inv_span * (sum + span_f * c.a));
+		sum += quantize(c.a) - quantize(a0);
+	}
 }
 ]]
 --[[pixelshader@put_col:
@@ -167,30 +197,32 @@ Texture2D src : register(t0);
 Texture2D map : register(t1);
 cbuffer constant0 : register(b0) {
 	float4 color[2];
-	float2 size_f, offset, blur;
+	float2 size_f, ofs_src_f, ofs_map_f, blur;
 	float alpha_back, alpha_fore, col_blur;
 };
 static const uint2 size = uint2(size_f);
+static const int2
+	ofs_src = int2(ofs_src_f),
+	ofs_map = int2(ofs_map_f);
 
 float4 put_col(float4 pos : SV_Position) : SV_Target
 {
-	const int2 pt0 = int2(pos.xy);
-	const float4 c_fore = src.Load(int3(pt0 - offset, 0));
-	const float d_len = map[pos.xy].a;
+	const int2 pt0 = int2(pos.xy) - ofs_map;
+	const float4 c_fore = src.Load(int3(int2(pos.xy) - ofs_src, 0));
+	const float d_len = map[pt0].a;
 	const float a = saturate((blur.x - d_len) * blur.y);
 	const float4 c_fill = lerp(color[0], color[1], saturate(d_len / blur.x));
 
-	const float range_pos = max(a > 0 && c_fill.a < 1 ? col_blur * sqrt(d_len) + 2 : 0, 0.5),
-		wt_rate = -3 / (range_pos * range_pos);
-	const int range_pos_i = ceil(range_pos - 1);
+	const float r = a > 0 && c_fill.a < 1 ? col_blur * sqrt(d_len) + 2 : 0.5,
+		wt_rate = -3 / (r * r);
+	const int R = ceil(r - 1);
 	float4 c_back = 0;
-	for (int yi = -range_pos_i; yi <= range_pos_i; yi++) {
-		for (int xi = -range_pos_i; xi <= range_pos_i; xi++) {
+	for (int yi = -R; yi <= R; yi++) {
+		for (int xi = -R; xi <= R; xi++) {
 			const uint2 pt = pt0 + uint2(xi, yi);
-			if (any(pt >= size)) continue;
-
-			const float wt = exp(wt_rate * (xi * xi + yi * yi));
-			c_back += wt * float4(map[pt].rgb, 1);
+			const float wt = any(pt >= size) ? 0 :
+				exp(wt_rate * (xi * xi + yi * yi));
+			c_back += wt * float4(map.Load(int3(pt, 0)).rgb, 1);
 		}
 	}
 	c_back.rgb /= c_back.a;
@@ -216,6 +248,7 @@ local obj, math, tonumber, bit_band = obj, math, tonumber, bit.band;
 		col_alpha_outer:	number?,
 		alpha:				number?,
 		front_alpha:		number?,
+		mollify:			number?,
 	}
 ]==]
 local function as_bool(pi_value, gui_value)
@@ -235,12 +268,14 @@ else color_outer = tonumber(PI.color_outer) or color_outer end
 col_alpha_outer = tonumber(PI.col_alpha_outer) or col_alpha_outer;
 alpha = tonumber(PI.alpha) or alpha;
 front_alpha = tonumber(PI.front_alpha) or front_alpha;
+mollify = tonumber(PI.mollify) or mollify;
 
 -- normalize paramters.
 thick = math.min(math.max(thick, 0), 500);
 blur = math.min(math.max(blur / 100, 0), 1);
 col_blur = math.min(math.max(col_blur / 100, 0), 1);
 threshold = math.min(math.max(threshold / 100, 2 ^ -24), 1 - 2 ^ -13);
+fixed_size = fixed_size or obj.getinfo("filter");
 color = math.floor(color) % 2 ^ 24;
 col_alpha = math.min(math.max(col_alpha / 100, 0), 1);
 if color_outer then
@@ -249,10 +284,12 @@ if color_outer then
 else color_outer, col_alpha_outer = color, col_alpha end
 alpha = math.min(math.max(1 - alpha / 100, 0), 1);
 front_alpha = math.min(math.max(1 - front_alpha / 100, 0), 1);
-fixed_size = fixed_size or obj.getinfo("filter");
+mollify = math.min(math.max(mollify / 100, 0), 1);
 
 -- further calculations.
-local thick_i = fixed_size and 0 or math.ceil(thick);
+local mollify_size = mollify * thick;
+local thick_i, mollify_size_i = fixed_size and 0 or math.ceil(thick), math.ceil(mollify_size);
+local offset_i = thick_i + mollify_size_i;
 local col1_r, col1_g, col1_b =
 	bit_band(color, 0xff0000) / 0xff0000,
 	bit_band(color, 0x00ff00) / 0x00ff00,
@@ -263,6 +300,7 @@ local col2_r, col2_g, col2_b =
 	bit_band(color_outer, 0x00ff00) / 0x00ff00,
 	bit_band(color_outer, 0x0000ff) / 0x0000ff;
 col2_r, col2_g, col2_b = col_alpha_outer * col2_r, col_alpha_outer * col2_g, col_alpha_outer * col2_b;
+if col_alpha >= 1 and col_alpha_outer >= 1 then col_blur = 0 end
 
 -- early return.
 if thick <= 0 or alpha <= 0 then
@@ -281,22 +319,39 @@ end
 
 -- create reposition map.
 local w, h = obj.w, obj.h;
-local W, H = w + 2 * thick_i, h + 2 * thick_i;
+local W, H = w + 2 * offset_i, h + 2 * offset_i;
 local cache_tmp, cache_map = "cache:ColoredCollar_S/tmp1", "cache:ColoredCollar_S/tmp2";
 obj.clearbuffer(cache_tmp, W, H); obj.clearbuffer(cache_map, W, H);
-obj.pixelshader("dist_init", cache_map, "object", { thick_i, thick_i, threshold });
+obj.pixelshader("dist_init", cache_map, "object", { offset_i, offset_i, threshold });
 for i = math.ceil(math.max(math.log(math.max(W, H) / 2, 2), -1)), 0, -1 do
 	obj.pixelshader("dist_step", cache_tmp, cache_map, { W, H; 2 ^ i; });
 	cache_tmp, cache_map = cache_map, cache_tmp;
 end
-obj.pixelshader("dist_fin", cache_tmp, { cache_map, "object" }, { W, H; thick_i, thick_i; });
+obj.pixelshader("dist_fin", cache_tmp, { cache_map, "object" }, { W, H; offset_i, offset_i; });
 cache_tmp, cache_map = cache_map, cache_tmp;
+
+-- mollify the distance part.
+if mollify > 0 then
+	local dim1, dim2, span_i, span_f, inv_span = H, W,
+		mollify_size_i - 1, 2 ^ 7 * (mollify_size - mollify_size_i + 1),
+		2 ^ -7 / mollify_size;
+	if dim1 ~= dim2 then obj.clearbuffer(cache_tmp, dim1, dim2) end
+	for _ = 1, 4 do
+		obj.computeshader("convol", cache_tmp, cache_map, {
+			dim1, dim2; span_i, span_f, inv_span;
+		}, 1, math.ceil(dim1 / 64), 1);
+		cache_tmp, cache_map = cache_map, cache_tmp;
+		dim1, dim2 = dim2, dim1;
+	end
+	obj.clearbuffer(cache_tmp, W - 2 * mollify_size_i, H - 2 * mollify_size_i);
+end
 
 -- put color to the destination.
 obj.pixelshader("put_col", cache_tmp, { "object", cache_map }, {
 	col1_r, col1_g, col1_b, col_alpha;
 	col2_r, col2_g, col2_b, col_alpha_outer;
-	W, H; thick_i, thick_i; thick, 1 / math.max(thick * blur, blur > 0 and 1 or 2 ^ -8);
+	W, H; thick_i, thick_i; -mollify_size_i, -mollify_size_i;
+	thick, 1 / math.max(thick * blur, blur > 0 and 1 or 2 ^ -8);
 	alpha, front_alpha; col_blur;
 });
 obj.copybuffer("object", cache_tmp);
