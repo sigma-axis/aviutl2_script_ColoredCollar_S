@@ -156,7 +156,7 @@ float4 dist_fin(float4 pos : SV_Position) : SV_Target
 	float4 col = 0;
 	[unroll] for (yi = -1; yi <= 1; yi++) {
 		[unroll] for (int xi = -1; xi <= 1; xi++) {
-			const float wt = (2 - abs(xi)) * (2 - abs(yi)) / 16.0;
+			const float wt = (2 - abs(xi)) * (2 - abs(yi));
 			col += wt * src.Load(int3(p_min + uint2(xi, yi), 0));
 		}
 	}
@@ -213,7 +213,8 @@ float4 put_col(float4 pos : SV_Position) : SV_Target
 	const float a = saturate((blur.x - d_len) * blur.y);
 	const float4 c_fill = lerp(color[0], color[1], saturate(d_len / blur.x));
 
-	const float r = a > 0 && c_fill.a < 1 ? col_blur * sqrt(d_len) + 2 : 0.5,
+	const float r = col_blur > 0 && a > 0 && c_fill.a < 1 ?
+			col_blur * sqrt(d_len) + 2 : 1,
 		wt_rate = -3 / (r * r);
 	const int R = ceil(r - 1);
 	float4 c_back = 0;
