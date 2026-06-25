@@ -22,7 +22,7 @@
 
   http://spring-fragrance.mints.ne.jp/aviutl
 
-  - `beta5` で動作確認済み．
+  - `beta51` で動作確認済み．
 
 ##  導入方法
 
@@ -106,6 +106,23 @@ Although, usage documentations for this script in languages other than Japanese 
 - テキストボックスには冒頭末尾の波括弧 (`{}`) を省略して記述してください．
 
 
+## 次の改版予定
+
+- **v2.00 (for beta51)** (2026-??-??)
+
+  - 大幅刷新．
+
+    - 以前の版とは見え方が異なりますが，各種パラメタは引き継がれます．特に縁取りサイズが大きい場合，外側付近の見え方が大きく異なります．
+
+    - 縁取りの色を，厳密に最も近いピクセルの色から取得するように．
+
+  - 動作を高速化 (「色拡散」が `0` の場合で， $O(WH \log(\max\{W,H\}))$).
+  - 「縁色外側」のパラメタ追加，縁取りの距離に応じたグラデーションができるように．
+  - 「αしきい値」「錯視補正」のパラメタ追加，[「縁取りT」](http://www.nicovideo.jp/watch/sm33598259)の「α基準」「錯覚補正」と類似の挙動．
+  - 「色拡散」を追加，距離に応じて色のぼかし量が変化．
+
+  - `beta51` での動作確認．
+
 ## 改版履歴
 
 - **v1.00 (for beta5)** (2025-08-04)
@@ -121,7 +138,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 The MIT License (MIT)
 
-Copyright (C) 2025 sigma-axis
+Copyright (C) 2025-2026 sigma-axis
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
