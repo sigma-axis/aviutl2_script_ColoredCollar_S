@@ -4,11 +4,9 @@
 
 [ダウンロードはこちら．](https://github.com/sigma-axis/aviutl2_script_ColoredCollar_S/releases) [紹介動画．](https://www.nicovideo.jp/watch/sm45257124)
 
-TODO: update these images below.
+![使用例1](https://github.com/user-attachments/assets/62234847-ed86-41fc-a50a-f01cc4077356)
 
-![使用例1](https://github.com/user-attachments/assets/9446ebe9-6818-4cb9-bc45-b60dfd41cbdf)
-
-![使用例2](https://github.com/user-attachments/assets/1c9eb507-17c7-42af-88b3-3207e1412599)
+![使用例2](https://github.com/user-attachments/assets/3056ac42-c983-42b8-b243-fb632590a201)
 
 - イラスト: 琴葉茜 琴葉葵 (c) AI Inc.
 
@@ -112,7 +110,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 [「ぼかし」](#ぼかし)や[「縁色外側」](#縁色外側)での距離グラデーションで，切り込んだ谷のように見える錯視的なアーティファクトを低減します．
 
-TODO: example image.
+![錯視補正の適用例](https://github.com/user-attachments/assets/879b5b97-a74c-4bf3-8a9d-0beb9afd2a3e)
 
 距離のスカラー場にぼかし処理をする方法で，そのぼかし幅を[「サイズ」](#サイズ)からの比で % 単位で指定します．
 
