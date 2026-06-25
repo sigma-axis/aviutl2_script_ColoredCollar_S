@@ -8,8 +8,8 @@ local thick = 5
 ---$track:ぼかし, min = 0, max = 100, step = 0.01
 local blur = 5
 
----$track:色拡散, min = 0, max = 200, step = 0.01, scale = 0.5
-local col_blur = 50
+---$track:色拡散, min = 0, max = 100, step = 0.01, scale = 0.5
+local col_blur = 5
 
 ---$track:αしきい値, min = 0, max = 100, step = 0.01
 local threshold = 50
@@ -65,7 +65,7 @@ local PI = {}
 --[[pixelshader@put_col:
 ---$include "put_col.hlsl"
 ]]
-local obj, math, tonumber, bit_band = obj, math, tonumber, bit.band;
+local obj, math, tonumber, type, bit_band = obj, math, tonumber, type, bit.band;
 
 --#region PI / normalize parameters / further calculations.
 
@@ -125,6 +125,7 @@ mollify = math.min(math.max(mollify / 100, 0), 1);
 local mollify_size = mollify * thick;
 local thick_i, mollify_size_i = fixed_size and 0 or math.ceil(thick), math.ceil(mollify_size);
 local offset_i = thick_i + mollify_size_i;
+local col_blur_rate = (col_blur / ((thick + 12) / 1024)) ^ 0.5;
 local col1_r, col1_g, col1_b =
 	bit_band(color, 0xff0000) / 0xff0000,
 	bit_band(color, 0x00ff00) / 0x00ff00,
@@ -189,6 +190,6 @@ obj.pixelshader("put_col", cache_tmp, { "object", cache_map }, {
 	col2_r, col2_g, col2_b, col_alpha_outer;
 	W, H; thick_i, thick_i; -mollify_size_i, -mollify_size_i;
 	thick, 1 / math.max(thick * blur, blur > 0 and 1 or 2 ^ -8);
-	alpha, front_alpha; col_blur;
+	alpha, front_alpha; col_blur_rate;
 });
 obj.copybuffer("object", cache_tmp);

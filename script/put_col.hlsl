@@ -18,17 +18,17 @@ float4 put_col(float4 pos : SV_Position) : SV_Target
 	const float a = saturate((blur.x - d_len) * blur.y);
 	const float4 c_fill = lerp(color[0], color[1], saturate(d_len / blur.x));
 
-	const float r = col_blur > 0 && a > 0 && c_fill.a < 1 ?
-			col_blur * sqrt(d_len) + 2 : 1,
-		wt_rate = -3 / (r * r);
-	const int R = ceil(r - 1);
+	const float L = a > 0 && c_fill.a < 1 ? col_blur * (sqrt(d_len + 1) - 1) : 0,
+		wt_rate = -3 / ((L + 1) * (L + 1));
+	const int N = ceil(L);
 	float4 c_back = 0;
-	for (int yi = -R; yi <= R; yi++) {
-		for (int xi = -R; xi <= R; xi++) {
+	for (int yi = -N; yi <= N; yi++) {
+		for (int xi = -N; xi <= N; xi++) {
 			const uint2 pt = pt0 + uint2(xi, yi);
-			const float wt = any(pt >= size) ? 0 :
-				exp(wt_rate * (xi * xi + yi * yi));
-			c_back += wt * float4(map.Load(int3(pt, 0)).rgb, 1);
+			if (any(pt >= size)) continue;
+
+			const float wt = exp(wt_rate * (xi * xi + yi * yi));
+			c_back += wt * float4(map[pt].rgb, 1);
 		}
 	}
 	c_back.rgb /= c_back.a;
