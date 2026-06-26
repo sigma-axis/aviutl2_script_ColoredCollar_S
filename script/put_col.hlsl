@@ -32,7 +32,7 @@ float4 put_col(float4 pos : SV_Position) : SV_Target
 		}
 	}
 	c_back.rgb /= c_back.a;
-	c_back.rgb = lerp(c_back.rgb, c_fill.rgb, c_fill.a);
+	c_back.rgb = c_fill.rgb + (1 - c_fill.a) * c_back.rgb;
 	c_back.a = max(a - c_fore.a, 0); c_back.rgb *= c_back.a;
 
 	return alpha_fore * c_fore + alpha_back * c_back;
