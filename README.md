@@ -92,6 +92,8 @@ Although, usage documentations for this script in languages other than Japanese 
 
 [「縁色」](#縁色)または[「縁色外側」](#縁色外側)で指定した色を着色する強さを指定します．% 単位で指定，大きくすれば指定色に，小さくすれば元画像の色に近くなります．
 
+- スクリプトから呼び出す際は「縁色」に対応するものは `"色の濃さ"`, 「縁色外側」に対応するものは `"outer::色の濃さ"` で指定してください．
+
 最小値は 0, 最大値は 100, 初期値は 30.
 
 ### 透明度
@@ -106,11 +108,11 @@ Although, usage documentations for this script in languages other than Japanese 
 
 最小値は 0, 最大値は 100, 初期値は 0.
 
-### 錯視補正
+### 錯視軽減
 
-[「ぼかし」](#ぼかし)や[「縁色外側」](#縁色外側)での距離グラデーションで，切り込んだ谷のように見える錯視的なアーティファクトを低減します．
+[「ぼかし」](#ぼかし)や[「縁色外側」](#縁色外側)での距離グラデーションで，切り込んだ谷のように見える錯視的な模様を軽減します．
 
-![錯視補正の適用例](https://github.com/user-attachments/assets/879b5b97-a74c-4bf3-8a9d-0beb9afd2a3e)
+![錯視軽減の適用例](https://github.com/user-attachments/assets/879b5b97-a74c-4bf3-8a9d-0beb9afd2a3e)
 
 距離のスカラー場にぼかし処理をする方法で，そのぼかし幅を[「サイズ」](#サイズ)からの比で % 単位で指定します．
 
@@ -133,7 +135,7 @@ Although, usage documentations for this script in languages other than Japanese 
   col_alpha_outer = num, -- number 型で "outer::色の濃さ" の項目を上書き，または nil.
   alpha = num,           -- number 型で "透明度" の項目を上書き，または nil.
   front_alpha = num,     -- number 型で "前景透明度" の項目を上書き，または nil.
-  mollify = num,         -- number 型で "錯視補正" の項目を上書き，または nil.
+  mollify = num,         -- number 型で "錯視軽減" の項目を上書き，または nil.
 }
 ```
 - テキストボックスには冒頭末尾の波括弧 (`{}`) を省略して記述してください．
@@ -154,7 +156,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
   - 動作を高速化 (「色拡散」が `0` の場合で， $O(WH \log(\max\{W,H\}))$ の計算量).
   - 「縁色外側」のパラメタ追加，縁取りの距離に応じたグラデーションができるように．
-  - 「αしきい値」「錯視補正」のパラメタ追加，[「縁取りT」](http://www.nicovideo.jp/watch/sm33598259)の「α基準」「錯覚補正」と類似の挙動．
+  - 「αしきい値」「錯視軽減」のパラメタ追加，[「縁取りT」](http://www.nicovideo.jp/watch/sm33598259)の「α基準」「錯覚補正」と類似の挙動．
   - 「色拡散」を追加，距離に応じて引き伸ばした色のぼかし量が変化．
   - 「サイズ固定」で外側の色だけを引き伸ばす効果ができるように．
   - フィルタオブジェクトに対応．

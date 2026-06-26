@@ -38,7 +38,7 @@ local alpha = 0
 local front_alpha = 0
 
 --group:その他,false
----$track:錯視補正, min = 0, max = 100, step = 0.01
+---$track:錯視軽減, min = 0, max = 100, step = 0.01
 local mollify = 0
 
 ---$value:PI
