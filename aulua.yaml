@@ -9,7 +9,7 @@ project:
 package:
   id: ColoredCollar_S
   name: 色付き縁取りスクリプト ColoredCollar_S
-  version: v2.00-dev (for beta51)
+  version: v2.00 (for beta51)
   information: "{name} {version} by {AUTHOR}"
   script_sub_dir: ""
   uninstall_sub_folder_file: false

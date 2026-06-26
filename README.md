@@ -144,9 +144,9 @@ Although, usage documentations for this script in languages other than Japanese 
 
 1.  [「ぼかし」](#ぼかし)は 0 だと境界がジャギーになりますが，0.01 など 0 より大きければ，最低限の 1 ピクセル幅のアンチエイリアスがかかります．
 
-##  次の改版予定
+##  改版履歴
 
-- **v2.00 (for beta51)** (2026-??-??)
+- **v2.00 (for beta51)** (2026-06-26)
 
   - 大幅刷新．
 
@@ -171,8 +171,6 @@ Although, usage documentations for this script in languages other than Japanese 
       スクリプトフォルダ，またはその 1 階層下のサブフォルダ内に配置されています．
 
   - `beta51` での動作確認．
-
-##  改版履歴
 
 - **v1.00 (for beta5)** (2025-08-04)
 
