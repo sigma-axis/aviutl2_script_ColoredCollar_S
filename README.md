@@ -60,7 +60,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 ### αしきい値
 
-元画像のピクセルのアルファ値を，不透明とみなす境界のしきい値を % 単位で指定します．
+元画像の各ピクセルを不透明とみなすアルファ値のしきい値を，% 単位で指定します．
 
 最小値は 0, 最大値は 100, 初期値は 50.
 
@@ -92,7 +92,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 [「縁色」](#縁色)または[「縁色外側」](#縁色外側)で指定した色を着色する強さを指定します．% 単位で指定，大きくすれば指定色に，小さくすれば元画像の色に近くなります．
 
-- スクリプトから呼び出す際は「縁色」に対応するものは `"色の濃さ"`, 「縁色外側」に対応するものは `"outer::色の濃さ"` で指定してください．
+- スクリプトや参照式から呼び出す際は「縁色」に対応するものは `"色の濃さ"`, 「縁色外側」に対応するものは `"outer::色の濃さ"` で指定してください．
 
 最小値は 0, 最大値は 100, 初期値は 30.
 
@@ -118,7 +118,7 @@ Although, usage documentations for this script in languages other than Japanese 
 
 最小値は 0, 最大値は 100, 初期値は 0.
 
-### `PI`
+### PI
 
 パラメタインジェクション (parameter injection) です．初期値は空欄. テーブル型の中身として解釈され，各種パラメタの代替値として使用されます．また，任意のスクリプトコードを実行する記述領域にもなります．
 
