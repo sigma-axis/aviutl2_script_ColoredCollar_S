@@ -1,4 +1,5 @@
 --information:ColoredCollar_S ${PACKAGE_VERSION} by ${AUTHOR}
+---$script_tips:オブジェクトの境界部分の色を引き延ばしたり，距離に応じた色グラデーションで縁取りします．
 --label:装飾
 --filter
 --require:${LEAST_AVIUTL_VERSION}
@@ -8,6 +9,7 @@ local thick = 5
 ---$track:ぼかし, min = 0, max = 100, step = 0.01
 local blur = 5
 
+---$tips:元画像の境界部分の色を引き延ばす際，距離に応じてぼかします．
 ---$track:色拡散, min = 0, max = 100, step = 0.01, scale = 0.5
 local col_blur = 5
 
@@ -17,6 +19,7 @@ local threshold = 50
 ---$checksection:サイズ固定
 local fixed_size = false
 
+--hide@fixed_size:filter~=0
 --group:色設定,false
 ---$color:縁色
 local color = 0xffffff
@@ -38,9 +41,25 @@ local alpha = 0
 local front_alpha = 0
 
 --group:その他,false
+---$tips:「ぼかし」や「縁色外側」での距離グラデーションで，錯視的な模様を軽減します．
 ---$track:錯視軽減, min = 0, max = 100, step = 0.01
 local mollify = 0
 
+---$nolang: name
+---$tips:PI = {
+---     :  thick: number?,
+---     :  blur: number?,
+---     :  col_blur: number?,
+---     :  threshold: number?,
+---     :  fixed_size: boolean|number|nil,
+---     :  color: number?,
+---     :  col_alpha: number?,
+---     :  color_outer: number|false|nil,
+---     :  col_alpha_outer: number?,
+---     :  alpha: number?,
+---     :  front_alpha: number?,
+---     :  mollify: number?,
+---     :}
 ---$value:PI
 local PI = {}
 
@@ -70,22 +89,6 @@ local obj, math, tonumber, type, bit_band = obj, math, tonumber, type, bit.band;
 --#region PI / normalize parameters / further calculations.
 
 -- take parameters.
---[==[
-	PI = {
-		thick:				number?,
-		blur:				number?,
-		col_blur:			number?,
-		threshold:			number?,
-		fixed_size:			boolean|number|nil,
-		color:				number?,
-		col_alpha:			number?,
-		color_outer:		number|false|nil,
-		col_alpha_outer:	number?,
-		alpha:				number?,
-		front_alpha:		number?,
-		mollify:			number?,
-	}
-]==]
 local function as_bool(pi_value, gui_value)
 	if type(pi_value) == "boolean" then return pi_value;
 	elseif type(pi_value) == "number" then return pi_value ~= 0;
@@ -192,4 +195,4 @@ obj.pixelshader("put_col", cache_tmp, { "object", cache_map }, {
 	thick, 1 / math.max(thick * blur, blur > 0 and 1 or 2 ^ -8);
 	alpha, front_alpha; col_blur_rate;
 });
-obj.copybuffer("object", cache_tmp);
+assert(obj.copybuffer("object", cache_tmp));

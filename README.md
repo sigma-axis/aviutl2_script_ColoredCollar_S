@@ -22,7 +22,7 @@
 
   http://spring-fragrance.mints.ne.jp/aviutl
 
-  - `beta51` で動作確認済み．
+  - `2.1.10` で動作確認済み．
 
 ##  導入方法
 
@@ -143,6 +143,12 @@ Although, usage documentations for this script in languages other than Japanese 
 ##  TIPS
 
 1.  [「ぼかし」](#ぼかし)は 0 だと境界がジャギーになりますが，0.01 など 0 より大きければ，最低限の 1 ピクセル幅のアンチエイリアスがかかります．
+
+##  次の改版予定
+
+- **v2.10** (2026-??-??)
+
+  - 一部設定項目にツールチップを表示するように．
 
 ##  改版履歴
 
