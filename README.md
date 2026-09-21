@@ -146,6 +146,10 @@ Although, usage documentations for this script in languages other than Japanese 
 
 ##  改版履歴
 
+- **v2.11** (2026-09-21)
+
+  - 一部ツールチップの変更．
+
 - **v2.10** (2026-09-21)
 
   - 一部設定項目にツールチップを表示するように．
