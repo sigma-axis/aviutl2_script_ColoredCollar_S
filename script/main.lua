@@ -27,7 +27,7 @@ local color = 0xffffff
 ---$track:色の濃さ, min = 0, max = 100, step = 0.01
 local col_alpha = 30
 
----$tips:別の色や透明度を指定すると距離に応じたグラデーションになります．
+---$tips:別の色や色の濃さを指定すると距離に応じたグラデーションになります．
 ---$color:縁色外側
 local color_outer = nil
 
