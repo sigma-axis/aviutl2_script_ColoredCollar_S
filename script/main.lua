@@ -1,4 +1,5 @@
 --information:ColoredCollar_S ${PACKAGE_VERSION} by ${AUTHOR}
+---$nolang: script_name
 ---$script_tips:オブジェクトの境界部分の色を引き延ばしたり，距離に応じた色グラデーションで縁取りします．
 --label:装飾
 --filter
